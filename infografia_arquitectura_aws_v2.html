@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arquitectura AWS — Copiloto de resolución, Banca Premium</title>
+  <style>
+    :root {
+      --ink: #16191f;
+      --muted: #5f6b7a;
+      --line: #d5dbdb;
+      --paper: #ffffff;
+      --wash: #f8f9fa;
+      --orange: #ff9900;
+      --navy: #232f3e;
+      --later: #f3f4f4;
+    }
+
+    * { box-sizing: border-box; transition: none; animation: none; }
+
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    .sheet {
+      height: 100%;
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      padding: 14px 18px 10px;
+      gap: 8px;
+    }
+
+    header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: end;
+      border-top: 4px solid var(--orange);
+      padding-top: 8px;
+    }
+
+    .kicker {
+      margin: 0 0 2px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--navy);
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      color: var(--navy);
+    }
+
+    .deck {
+      margin: 4px 0 0;
+      font-size: 13px;
+      line-height: 1.35;
+      color: var(--muted);
+      max-width: 860px;
+    }
+
+    .meta {
+      text-align: right;
+      font-size: 11px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .meta strong {
+      display: block;
+      color: var(--navy);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .legend b { color: var(--navy); font-weight: 650; }
+    .swatch {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 4px;
+      vertical-align: -1px;
+      background: var(--orange);
+    }
+    .swatch.ext { background: var(--paper); border: 1px solid var(--line); }
+    .swatch.later { background: var(--later); border: 1px dashed #b7bec4; }
+    .swatch.flow {
+      width: 18px;
+      height: 0;
+      border-top: 2px solid var(--navy);
+      background: transparent;
+      vertical-align: 3px;
+    }
+    .swatch.flow-later {
+      width: 18px;
+      height: 0;
+      border-top: 2px dashed #8b97a3;
+      background: transparent;
+      vertical-align: 3px;
+    }
+
+    .arch {
+      min-height: 0;
+      min-width: 0;
+      position: relative;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+
+    .links {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .link {
+      fill: none;
+      stroke: var(--navy);
+      stroke-width: 1.5;
+      marker-end: url(#arrow);
+    }
+
+    .link.later {
+      stroke: #8b97a3;
+      stroke-dasharray: 4 3;
+      marker-end: url(#arrowLater);
+    }
+
+    .diagram {
+      min-height: 0;
+      min-width: 0;
+      position: relative;
+      display: grid;
+      grid-template-columns: 196px minmax(0, 1fr);
+      gap: 10px;
+    }
+
+    .rail, .cloud {
+      min-height: 0;
+      min-width: 0;
+    }
+
+    .rail {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    .group {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 8px 8px;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .group h2 {
+      position: absolute;
+      top: -7px;
+      left: 8px;
+      margin: 0;
+      padding: 0 4px;
+      background: var(--paper);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+
+    .mods {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .mods.fill {
+      flex: 1;
+      justify-content: space-evenly;
+    }
+
+    .cloud {
+      position: relative;
+      border: 1.5px solid var(--orange);
+      border-radius: 10px;
+      padding: 18px 8px 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .cloud-label {
+      position: absolute;
+      top: -8px;
+      left: 12px;
+      background: var(--paper);
+      padding: 0 6px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: 0.02em;
+    }
+
+    .cloud-label i {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 4px;
+      background: var(--orange);
+      font-style: normal;
+    }
+
+    .cloud-grid {
+      min-height: 0;
+      min-width: 0;
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .mod {
+      appearance: none;
+      width: 100%;
+      margin: 0;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      font: inherit;
+      text-align: center;
+      padding: 6px 4px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      min-width: 0;
+    }
+
+    .rail .mod { align-items: flex-start; text-align: left; padding: 6px 8px; }
+
+    .mod:hover, .mod:focus-visible { border-color: var(--orange); outline: none; }
+    .mod.is-open { border-color: var(--orange); outline: 1px solid var(--orange); }
+
+    .mod .ico {
+      display: flex;
+      gap: 4px;
+      height: auto;
+      flex: 0 0 auto;
+    }
+    .mod .ico svg { width: 26px; height: 26px; display: block; flex: 0 0 26px; }
+
+    .svc {
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 700;
+      color: var(--navy);
+      overflow-wrap: break-word;
+    }
+
+    .role {
+      font-size: 10px;
+      line-height: 1.25;
+      color: var(--muted);
+      overflow-wrap: break-word;
+    }
+
+    .mod.later {
+      background: var(--later);
+      border-style: dashed;
+    }
+
+    .mod.later .svc { color: #4e5966; }
+    .mod.later .ico { opacity: 0.55; }
+
+    .later-band {
+      min-width: 0;
+      border: 1px dashed #b7bec4;
+      border-radius: 8px;
+      background: transparent;
+      padding: 14px 8px 8px;
+      position: relative;
+    }
+
+    .later-band h2 {
+      position: absolute;
+      top: -7px;
+      left: 10px;
+      margin: 0;
+      padding: 0 4px;
+      background: var(--paper);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #4e5966;
+    }
+
+    .later-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--navy);
+      padding-top: 4px;
+      font-size: 10px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .popup {
+      position: fixed;
+      z-index: 20;
+      width: min(320px, calc(100vw - 24px));
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--orange);
+      padding: 10px 28px 12px 12px;
+    }
+
+    .popup[hidden] { display: none; }
+
+    .popup .scope {
+      margin: 0 0 4px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--orange);
+    }
+
+    .popup h3 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      line-height: 1.25;
+      color: var(--navy);
+    }
+
+    .popup .kind {
+      margin: 0 0 6px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .popup p {
+      margin: 0;
+      font-size: 12.5px;
+      line-height: 1.4;
+      color: var(--ink);
+    }
+
+    .popup .close {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      border: 0;
+      background: transparent;
+      color: var(--navy);
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .corner {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      padding-top: 40px;
+    }
+
+    .seq-toggle {
+      position: fixed;
+      top: 22px;
+      right: 22px;
+      z-index: 40;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--navy);
+      background: var(--paper);
+      color: var(--navy);
+      padding: 0;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .seq-toggle:hover,
+    .seq-toggle[aria-pressed="true"] {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .seq-toggle svg { display: block; }
+
+    .sheet[hidden] { display: none; }
+
+    .seq-sheet { display: none; }
+    .seq-sheet.is-on {
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+    }
+
+    .seq-board {
+      min-height: 0;
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr);
+      border: 1px solid var(--line);
+      padding: 10px 8px 8px;
+      position: relative;
+    }
+
+    .seq-heads, .seq-step {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      position: relative;
+      z-index: 1;
+    }
+
+    .seq-head {
+      margin: 0 6px;
+      padding: 6px 4px;
+      border: 1px solid var(--line);
+      background: var(--paper);
+      text-align: center;
+    }
+
+    .seq-head b {
+      display: block;
+      font-size: 11px;
+      line-height: 1.2;
+      color: var(--navy);
+    }
+
+    .seq-head span {
+      display: block;
+      margin-top: 2px;
+      font-size: 10px;
+      line-height: 1.2;
+      color: var(--muted);
+    }
+
+    .seq-body {
+      position: relative;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 0 40px;
+    }
+
+    .seq-lines {
+      position: absolute;
+      inset: 0 0 0 0;
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      pointer-events: none;
+    }
+
+    .seq-lines i {
+      border-left: 1px dashed #c5ced6;
+      margin-left: 50%;
+    }
+
+    .seq-nav {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      z-index: 4;
+      display: flex;
+      gap: 4px;
+      background: var(--paper);
+    }
+
+    .seq-nav button {
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--navy);
+      background: var(--paper);
+      color: var(--navy);
+      font: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+    }
+
+    .seq-nav button:hover:not(:disabled) {
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+
+    .seq-nav button:disabled {
+      color: #c5ced6;
+      border-color: var(--line);
+      cursor: default;
+    }
+
+    .seq-track {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      min-width: 0;
+      margin-left: calc(100% / (var(--span) * 2));
+      margin-right: calc(100% / (var(--span) * 2));
+    }
+
+    .seq-track span {
+      font-size: 11px;
+      line-height: 1.2;
+      color: var(--ink);
+      padding: 0 4px 2px;
+      opacity: 0;
+    }
+
+    .seq-step.is-shown .seq-track span { opacity: 1; }
+
+    .seq-track i {
+      display: block;
+      height: 0;
+      width: 0;
+      border-top: 1.5px solid var(--navy);
+      position: relative;
+      align-self: flex-start;
+      transition: width 1s linear;
+    }
+
+    .seq-track.back i { align-self: flex-end; }
+    .seq-step.is-shown .seq-track i { width: 100%; }
+
+    .seq-track i::after { visibility: hidden; }
+    .seq-step.is-shown .seq-track i::after { visibility: visible; }
+
+    .seq-track.back i { border-top-style: solid; }
+
+    .seq-track.go i::after,
+    .seq-track.back i::after {
+      content: "";
+      position: absolute;
+      top: -4px;
+      border: 4px solid transparent;
+    }
+
+    .seq-track.go i::after {
+      right: -1px;
+      border-left: 6px solid var(--navy);
+    }
+
+    .seq-track.back i::after {
+      left: -1px;
+      border-right: 6px solid var(--navy);
+    }
+
+    .seq-step.later .seq-track span { color: #4e5966; }
+    .seq-step.later .seq-track i { border-top-style: dashed; border-top-color: #8b97a3; }
+    .seq-step.later .seq-track.go i::after { border-left-color: #8b97a3; }
+    .seq-step.later .seq-track.back i::after { border-right-color: #8b97a3; }
+
+    .seq-note {
+      margin: 0;
+      font-size: 11px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <button type="button" id="seqToggle" class="seq-toggle" aria-pressed="false" aria-label="Ver la secuencia animada del turno">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path d="M9 3.5h6M12 3.5V6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      <circle cx="12" cy="14" r="7" fill="none" stroke="currentColor" stroke-width="1.6"/>
+      <path d="M12 14V10.2M12 14l2.4 1.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+  </button>
+  <article class="sheet" id="archSheet">
+    <header>
+      <div>
+        <p class="kicker">Santander Tecnología Argentina · Diagrama de arquitectura AWS</p>
+        <h1>Copiloto de resolución para Banca Premium</h1>
+        <p class="deck">Propuesta de resolución del prework para entrevista técnica - AI Project Lead. El recuadro naranja es la cuenta AWS. La línea continua recorre el MVP. La punteada llega a lo que se enciende en productivo. Click en un módulo para ver el detalle.</p>
+      </div>
+      <div class="corner">
+        <div class="meta">
+          <strong>Horacio Arrigo</strong>
+          Septiembre 2026 · v2<br />
+          Uso interno
+        </div>
+      </div>
+    </header>
+
+    <div class="legend">
+      <span><i class="swatch"></i><b>Ícono:</b> servicio AWS</span>
+      <span><i class="swatch ext"></i><b>Sin ícono:</b> sistema del banco</span>
+      <span><i class="swatch later"></i><b>Punteado:</b> apagado en el MVP</span>
+      <span><i class="swatch flow"></i><b>Continua:</b> flujo del MVP</span>
+      <span><i class="swatch flow-later"></i><b>Punteada:</b> productivo</span>
+    </div>
+
+    <div class="arch">
+    <svg id="links" class="links" aria-hidden="true">
+      <defs>
+        <marker id="arrow" viewBox="0 0 8 8" markerWidth="7" markerHeight="7" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#232f3e"></path>
+        </marker>
+        <marker id="arrowLater" viewBox="0 0 8 8" markerWidth="7" markerHeight="7" refX="7" refY="4" orient="auto">
+          <path d="M0 0 L8 4 L0 8 Z" fill="#8b97a3"></path>
+        </marker>
+      </defs>
+      <g id="wires"></g>
+    </svg>
+    <section class="diagram" aria-label="Figura 1. Arquitectura en AWS">
+      <div class="rail">
+        <section class="group">
+          <h2>Canal</h2>
+          <div class="mods">
+            <button type="button" class="mod" data-id="operador"><span class="svc">Operador Premium</span><span class="role">Teléfono, chat o email</span></button>
+            <button type="button" class="mod" data-id="gerente"><span class="svc">Gerente de cuenta</span><span class="role">UAT y feedback</span></button>
+            <button type="button" class="mod" data-id="panel"><span class="svc">Panel del copiloto</span><span class="role">Escritorio actual</span></button>
+          </div>
+        </section>
+        <section class="group">
+          <h2>Ya existe en el banco</h2>
+          <div class="mods fill">
+            <button type="button" class="mod" data-id="idp"><span class="svc">IdP corporativo</span><span class="role">Identidad del operador</span></button>
+            <button type="button" class="mod" data-id="rag"><span class="svc">RAG existente</span><span class="role">Subset ya validado</span></button>
+            <button type="button" class="mod" data-id="bi"><span class="svc">Plataforma de BI</span><span class="role">Observabilidad actual</span></button>
+            <button type="button" class="mod" data-id="benchmark"><span class="svc">Benchmark</span><span class="role">Compuerta de release</span></button>
+            <button type="button" class="mod" data-id="redteam"><span class="svc">Red team</span><span class="role">Prueba del benchmark</span></button>
+          </div>
+        </section>
+      </div>
+
+      <section class="cloud">
+        <div class="cloud-label"><i></i>AWS Cloud · sa-east-1</div>
+        <div class="cloud-grid">
+          <section class="group">
+            <h2>01 · Entrada</h2>
+            <div class="mods fill">
+              <button type="button" class="mod" data-id="waf">
+                <span class="ico" data-icon="waf"></span>
+                <span class="svc">AWS WAF</span>
+                <span class="role">Borde del landing zone</span>
+              </button>
+              <button type="button" class="mod" data-id="apigw">
+                <span class="ico" data-icon="apigw"></span>
+                <span class="svc">Amazon API Gateway</span>
+                <span class="role">Entrada del panel</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2>02 · Aplicación</h2>
+            <div class="mods fill">
+              <button type="button" class="mod" data-id="sandbox">
+                <span class="svc">Sandbox global de AI</span>
+                <span class="role">Runtime preferido del MVP</span>
+              </button>
+              <button type="button" class="mod" data-id="bff">
+                <span class="ico dual" data-icon="compute"></span>
+                <span class="svc">AWS Lambda o Amazon ECS</span>
+                <span class="role">BFF de sesión y contacto</span>
+              </button>
+              <button type="button" class="mod" data-id="orq">
+                <span class="svc">Orquestador híbrido</span>
+                <span class="role">Cita, recomendación, borrador</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2>03 · Amazon Bedrock</h2>
+            <div class="mods fill">
+              <button type="button" class="mod" data-id="route">
+                <span class="ico" data-icon="bedrock"></span>
+                <span class="svc">Amazon Bedrock</span>
+                <span class="role">LLM de ruteo</span>
+              </button>
+              <button type="button" class="mod" data-id="gen">
+                <span class="ico" data-icon="bedrock"></span>
+                <span class="svc">Amazon Bedrock</span>
+                <span class="role">LLM de respuesta y borrador</span>
+              </button>
+              <button type="button" class="mod" data-id="guard">
+                <span class="ico" data-icon="bedrock"></span>
+                <span class="svc">Amazon Bedrock Guardrails</span>
+                <span class="role">Control fuera del modelo</span>
+              </button>
+            </div>
+          </section>
+
+          <section class="group">
+            <h2>04 · Control</h2>
+            <div class="mods fill">
+              <button type="button" class="mod" data-id="iam">
+                <span class="ico" data-icon="iam"></span>
+                <span class="svc">AWS IAM</span>
+                <span class="role">Permisos de la cuenta</span>
+              </button>
+              <button type="button" class="mod" data-id="logs">
+                <span class="ico" data-icon="cw"></span>
+                <span class="svc">Amazon CloudWatch Logs</span>
+                <span class="role">Registro del turno</span>
+              </button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </section>
+
+    <section class="later-band">
+      <h2>05 · Productivo, apagado en el MVP</h2>
+      <div class="later-grid">
+        <button type="button" class="mod later" data-id="read"><span class="svc">Lectura de cliente</span><span class="role">API del banco</span></button>
+        <button type="button" class="mod later" data-id="case"><span class="svc">Alta de caso</span><span class="role">API del banco</span></button>
+        <button type="button" class="mod later" data-id="status"><span class="svc">Seguimiento y estado</span><span class="role">API del banco</span></button>
+        <button type="button" class="mod later" data-id="acl"><span class="svc">Autorización documental</span><span class="role">Modelo del banco</span></button>
+        <button type="button" class="mod later" data-id="agentcore">
+          <span class="ico" data-icon="bedrock"></span>
+          <span class="svc">Amazon Bedrock AgentCore</span>
+          <span class="role">Perímetro de políticas</span>
+        </button>
+        <button type="button" class="mod later" data-id="cliente"><span class="svc">Canal cliente</span><span class="role">Otro producto</span></button>
+      </div>
+    </section>
+    </div>
+
+    <footer>
+      <span>Figura 1. Arquitectura de referencia en AWS. Los íconos identifican el servicio. El nombre oficial va debajo. Caso ficticio de selección, propuesta v1.0.</span>
+      <span>Click en un módulo para el detalle. Escape cierra el recuadro.</span>
+    </footer>
+  </article>
+
+  <article class="sheet seq-sheet" id="seqSheet" aria-label="Secuencia del turno">
+    <header>
+      <div>
+        <p class="kicker">Santander Tecnología Argentina · Secuencia del turno</p>
+        <h1>Un contacto de Banca Premium</h1>
+        <p class="deck">El turno del MVP termina cuando el operador acepta, edita o descarta. La línea punteada es el alta de caso: solo corre si esa tool ya está activa, y pide una segunda confirmación.</p>
+      </div>
+      <div class="corner">
+        <div class="meta">
+          <strong>Horacio Arrigo</strong>
+          Septiembre 2026 · v2<br />
+          Hoja de secuencia
+        </div>
+      </div>
+    </header>
+    <section class="seq-board">
+      <div class="seq-nav">
+        <button type="button" id="seqPrev" aria-label="Paso anterior" disabled>&lt;</button>
+        <button type="button" id="seqNext" aria-label="Paso siguiente">&gt;</button>
+      </div>
+      <div class="seq-heads">
+        <div class="seq-head"><b>Operador</b><span>Banca Premium</span></div>
+        <div class="seq-head"><b>Borde y BFF</b><span>WAF · API Gateway · Lambda o ECS</span></div>
+        <div class="seq-head"><b>Orquestador</b><span>Sandbox híbrido</span></div>
+        <div class="seq-head"><b>Amazon Bedrock</b><span>Ruteo, respuesta, Guardrails</span></div>
+        <div class="seq-head"><b>RAG existente</b><span>Subset validado</span></div>
+        <div class="seq-head"><b>CloudWatch Logs</b><span>Registro del turno</span></div>
+      </div>
+      <div class="seq-body">
+        <div class="seq-lines" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="seq-step" style="--delay:0.15s"><div class="seq-track go" style="grid-column:1 / 3; --span:2"><span>Pregunta de cuentas o tarjetas, contacto abierto</span><i></i></div></div>
+        <div class="seq-step" style="--delay:0.45s"><div class="seq-track go" style="grid-column:2 / 4; --span:2"><span>IdP vigente, tope de pasos, tiempo y costo</span><i></i></div></div>
+        <div class="seq-step" style="--delay:0.75s"><div class="seq-track go" style="grid-column:3 / 5; --span:2"><span>LLM de ruteo: clasificar la intención</span><i></i></div></div>
+        <div class="seq-step" style="--delay:1.05s"><div class="seq-track back" style="grid-column:3 / 5; --span:2"><span>Motivo dentro del subset Premium</span><i></i></div></div>
+        <div class="seq-step" style="--delay:1.35s"><div class="seq-track go" style="grid-column:3 / 6; --span:3"><span>retrieve_knowledge</span><i></i></div></div>
+        <div class="seq-step" style="--delay:1.65s"><div class="seq-track back" style="grid-column:3 / 6; --span:3"><span>Pasajes con cita vigente</span><i></i></div></div>
+        <div class="seq-step" style="--delay:1.95s"><div class="seq-track go" style="grid-column:3 / 5; --span:2"><span>LLM de respuesta y Guardrails</span><i></i></div></div>
+        <div class="seq-step" style="--delay:2.25s"><div class="seq-track back" style="grid-column:3 / 5; --span:2"><span>Borrador citado. Nada se envía</span><i></i></div></div>
+        <div class="seq-step" style="--delay:2.55s"><div class="seq-track back" style="grid-column:1 / 4; --span:3"><span>Respuesta, recomendación y borrador</span><i></i></div></div>
+        <div class="seq-step" style="--delay:2.85s"><div class="seq-track go" style="grid-column:1 / 4; --span:3"><span>Acepta, edita o descarta</span><i></i></div></div>
+        <div class="seq-step" style="--delay:3.15s"><div class="seq-track go" style="grid-column:3 / 7; --span:4"><span>Registro del turno. Cierre del MVP</span><i></i></div></div>
+        <div class="seq-step later" style="--delay:3.7s"><div class="seq-track go" style="grid-column:1 / 4; --span:3"><span>Segunda confirmación del alta</span><i></i></div></div>
+        <div class="seq-step later" style="--delay:4.05s"><div class="seq-track back" style="grid-column:2 / 4; --span:2"><span>create_case, solo si la API ya existe</span><i></i></div></div>
+      </div>
+    </section>
+    <footer>
+      <span class="seq-note">En la versión 0 este turno cerraba siempre con el alta del caso. Ahora el MVP termina en la revisión del operador. Lectura de cliente y alta siguen apagadas hasta que esa API ya exista.</span>
+      <span class="seq-note">&lt; y &gt; detienen el avance automático.</span>
+    </footer>
+  </article>
+
+  <div id="popup" class="popup" role="dialog" aria-modal="false" hidden>
+    <button type="button" class="close" aria-label="Cerrar">×</button>
+    <p class="scope" id="pop-scope"></p>
+    <h3 id="pop-title"></h3>
+    <p class="kind" id="pop-kind"></p>
+    <p id="pop-body"></p>
+  </div>
+
+  <script>
+    const ICONS = {
+      waf: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#DD344C"/><path d="M24 9l13 4.5v11c0 8.2-5.4 13.4-13 16.5-7.6-3.1-13-8.3-13-16.5v-11L24 9z" fill="none" stroke="#fff" stroke-width="2.2"/><path d="M17.5 24.5l4.2 4.2 9-9.2" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+      apigw: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#E7157B"/><path d="M14 16h14v16H14z" fill="none" stroke="#fff" stroke-width="2"/><path d="M28 20h6M28 24h6M28 28h6M10 20h4M10 24h4M10 28h4" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
+      lambda: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#ED7100"/><path d="M18 36l8.2-20h5.2L23.2 36h-5.2zm7.2-20l6.6 16.2" fill="none" stroke="#fff" stroke-width="2.3" stroke-linejoin="round"/></svg>',
+      ecs: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#ED7100"/><path d="M16 28l8-4 8 4v8l-8 4-8-4v-8zm8-4v8M16 20l8-4 8 4" fill="none" stroke="#fff" stroke-width="1.8" stroke-linejoin="round"/></svg>',
+      bedrock: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#01A88D"/><path d="M14 32l10-5 10 5-10 5-10-5zm0-8l10-5 10 5M24 19v8" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>',
+      iam: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#DD344C"/><circle cx="20" cy="20" r="5" fill="none" stroke="#fff" stroke-width="2"/><path d="M12 34c1.2-5 4-7.5 8-7.5s6.8 2.5 8 7.5" fill="none" stroke="#fff" stroke-width="2"/><circle cx="33" cy="28" r="3.2" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M36 28h5M38.5 28v3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>',
+      cw: '<svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="6" fill="#E7157B"/><path d="M12 32h24M16 30l5-8 5 5 7-10" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+    };
+
+    ICONS.compute = ICONS.lambda + ICONS.ecs;
+
+    document.querySelectorAll("[data-icon]").forEach((slot) => {
+      slot.innerHTML = ICONS[slot.dataset.icon] || "";
+    });
+
+    const DETAILS = {
+      operador: ["MVP", "Operador Premium", "Rol del banco, fuera de AWS", "Usuario del panel. Atiende Banca Premium por teléfono, chat o email, en un grupo reducido. El copiloto trabaja dentro del contacto que ya tiene abierto."],
+      gerente: ["MVP", "Gerente de cuenta", "Rol del banco, fuera de AWS", "Participa del diseño, del UAT y del benchmark. Juzga si la respuesta sirve. No opera la pantalla y la cartera no se usa como laboratorio."],
+      panel: ["MVP", "Panel del copiloto", "Canal del banco, fuera de AWS", "Va embebido en el escritorio que el operador ya usa. No abre un canal nuevo ni depende de Amazon Connect."],
+      idp: ["MVP", "IdP corporativo", "Identidad del banco, fuera de AWS", "Es el padrón del operador y ya funciona con el RAG. El copiloto actúa on-behalf-of. Amazon Cognito no reemplaza esta identidad. AWS IAM cubre solo los permisos de la cuenta."],
+      rag: ["MVP", "RAG existente", "Sistema del banco, fuera de AWS", "Se usa la API actual, limitada al subset de cuentas y tarjetas que ya está validado. Ese subset es el benchmark. El MVP no reescribe el RAG ni corrige el resto de las pruebas."],
+      bi: ["MVP", "Plataforma de BI", "Observabilidad del banco, fuera de AWS", "El banco ya la opera. El MVP le publica métricas del copiloto. No se construye una plataforma nueva de observabilidad."],
+      benchmark: ["MVP", "Benchmark", "Compuerta, fuera de AWS", "Parte del set de pruebas donde el RAG ya responde bien, más la revisión del gerente de cuenta. Nada sale del UAT si esta compuerta no pasa."],
+      redteam: ["MVP", "Red team", "Seguridad, fuera de AWS", "Prueba el benchmark antes de ampliar el UAT: prompt injection, datos de más y temas fuera de alcance. El red team del canal cliente es una prueba distinta, más adelante."],
+      waf: ["MVP", "AWS WAF", "Servicio AWS de borde", "Filtra el tráfico del panel antes de Amazon API Gateway. Es un componente estándar del landing zone. No pide una excepción."],
+      apigw: ["MVP", "Amazon API Gateway", "Servicio AWS de entrada", "Recibe la sesión del panel. Hacia Amazon Bedrock el tráfico va por VPC endpoint, dentro de la región aprobada, sin salir a internet pública."],
+      sandbox: ["MVP", "Sandbox de la plataforma global de AI", "Runtime del banco sobre AWS", "Es el lugar preferido para correr el MVP, con especificaciones técnicas y de costo ya conocidas. No es un servicio AWS con ícono propio. Si el sandbox no está listo, el orquestador pasa al cómputo estándar de la cuenta."],
+      bff: ["MVP", "BFF de sesión y contacto", "AWS Lambda o Amazon ECS", "Traduce la identidad del operador y el contacto abierto al turno del copiloto. El Tech Lead elige entre Lambda y ECS según el patrón ya aprobado. No es una decisión de producto ni un servicio nuevo."],
+      orq: ["MVP", "Orquestador híbrido", "Lógica de la solución, no un servicio AWS", "Un solo loop, con tope de pasos, tiempo y costo. En el MVP las skills activas son cita, recomendación y borrador. Las escrituras quedan definidas y apagadas. Sigue híbrido hasta tener evidencia de madurez."],
+      route: ["MVP", "LLM de ruteo", "Amazon Bedrock", "Modelo chico del catálogo ya aprobado en la cuenta. Clasifica la intención y elige la skill activa. El modelo concreto se cierra en discovery, contra el benchmark y el costo."],
+      gen: ["MVP", "LLM de respuesta y borrador", "Amazon Bedrock", "Redacta la respuesta citada y el borrador. Es un perfil distinto del de ruteo para no usar el modelo grande en cada paso. También se elige dentro del catálogo aprobado."],
+      guard: ["MVP", "Amazon Bedrock Guardrails", "Control de Amazon Bedrock", "Revisa prompt injection, PII y temas fuera de alcance. Corre fuera de la decisión del modelo: el orquestador no puede omitirlo. Cada salida del MVP pasa por aquí antes de llegar al operador."],
+      iam: ["MVP", "AWS IAM", "Identidad de la cuenta AWS", "Autoriza a los servicios de la cuenta: API Gateway, el cómputo, Bedrock y CloudWatch Logs. No identifica al operador. Esa identidad sigue en el IdP del banco."],
+      logs: ["MVP", "Amazon CloudWatch Logs", "Registro del turno", "Es el storage nuevo del MVP: cada turno queda reconstruible, cifrado, con el patrón ya aprobado. La plataforma de BI existente consume esas métricas. Si Arquitectura pide archivo durable, el mismo patrón sigue en Amazon S3."],
+      read: ["Productivo", "Lectura de cliente", "API del banco, fuera de AWS", "On-behalf-of, solo el cliente del contacto abierto. La skill está especificada y apagada. Se enciende el día en que esa API ya existe. El MVP cierra sin ella."],
+      case: ["Productivo", "Alta de caso", "API del banco, fuera de AWS", "Exige vista previa, confirmación de un solo uso y clave idempotente. Apagada en el MVP. Nada se ejecuta sin el operador."],
+      status: ["Productivo", "Seguimiento y cambio de estado", "API del banco, fuera de AWS", "Misma compuerta de confirmación que el alta. Los estados salen de una lista cerrada. No entra en las 10 semanas."],
+      acl: ["Productivo", "Autorización documental", "Modelo del banco, fuera de AWS", "El MVP usa el modelo vigente, que no expone documentos a quien no corresponde. Los metadatos se cargan desde ahora para que la evolución no obligue a rehacer el corpus."],
+      agentcore: ["Productivo", "Amazon Bedrock AgentCore", "Servicio AWS, apagado en el MVP", "Candidato a perímetro de políticas cuando Arquitectura lo tenga como estándar. La política queda fuera del prompt. Si la plataforma global trae su propio perímetro, se usa ese y el contrato de tools no cambia."],
+      cliente: ["Después del despliegue interno", "Canal cliente", "Otro producto, fuera de este agente", "Cambia el límite de confianza. Exige red team de canal, client-in-the-loop y disclaimers. No se enciende como un parámetro del copiloto del operador."]
+    };
+
+    const popup = document.getElementById("popup");
+    const buttons = Array.from(document.querySelectorAll(".mod"));
+    let current = null;
+
+    function closePopup() {
+      popup.hidden = true;
+      if (current) current.classList.remove("is-open");
+      current = null;
+    }
+
+    function openPopup(btn) {
+      if (current === btn) {
+        closePopup();
+        return;
+      }
+      if (current) current.classList.remove("is-open");
+      current = btn;
+      btn.classList.add("is-open");
+      const data = DETAILS[btn.dataset.id];
+      document.getElementById("pop-scope").textContent = data[0];
+      document.getElementById("pop-title").textContent = data[1];
+      document.getElementById("pop-kind").textContent = data[2];
+      document.getElementById("pop-body").textContent = data[3];
+      popup.hidden = false;
+      const rect = btn.getBoundingClientRect();
+      const width = popup.offsetWidth;
+      const height = popup.offsetHeight;
+      let left = rect.left;
+      let top = rect.bottom + 8;
+      if (left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+      if (left < 12) left = 12;
+      if (top + height > window.innerHeight - 12) top = rect.top - height - 8;
+      if (top < 8) top = 8;
+      popup.style.left = left + "px";
+      popup.style.top = top + "px";
+    }
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openPopup(btn);
+      });
+    });
+
+    popup.addEventListener("click", (event) => event.stopPropagation());
+    popup.querySelector(".close").addEventListener("click", closePopup);
+    document.addEventListener("click", closePopup);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closePopup();
+    });
+
+    const LINKS = [
+      ["operador", "panel", "mvp"],
+      ["panel", "waf", "mvp"],
+      ["waf", "apigw", "mvp"],
+      ["apigw", "bff", "mvp"],
+      ["bff", "idp", "mvp"],
+      ["bff", "sandbox", "mvp"],
+      ["sandbox", "orq", "mvp"],
+      ["gerente", "benchmark", "mvp"],
+      ["orq", "route", "mvp"],
+      ["orq", "gen", "mvp"],
+      ["orq", "guard", "mvp"],
+      ["orq", "rag", "mvp"],
+      ["orq", "logs", "mvp"],
+      ["logs", "bi", "mvp"],
+      ["gen", "benchmark", "mvp", "gutter"],
+      ["benchmark", "redteam", "mvp"],
+      ["orq", "read", "later", "gutter"],
+      ["orq", "case", "later", "gutter"],
+      ["orq", "status", "later", "gutter"],
+      ["rag", "acl", "later", "gutter"],
+      ["orq", "agentcore", "later", "gutter"],
+      ["panel", "cliente", "later", "gutter"]
+    ];
+
+    function nodeBox(el, root) {
+      const r = el.getBoundingClientRect();
+      const h = root.getBoundingClientRect();
+      return {
+        x: r.left - h.left,
+        y: r.top - h.top,
+        w: r.width,
+        h: r.height,
+        cx: r.left - h.left + r.width / 2,
+        cy: r.top - h.top + r.height / 2
+      };
+    }
+
+    function routeGutter(a, b, lane, y) {
+      const x1 = a.cx + lane;
+      const y1 = a.y + a.h;
+      const x2 = b.cx;
+      const y2 = b.y - 7;
+      const gy = y + lane;
+      return "M " + x1 + " " + y1 + " V " + gy + " H " + x2 + " V " + y2;
+    }
+
+    function route(a, b, lane, dir) {
+      const gap = 7;
+      let x1, y1, x2, y2;
+      if (dir === "E" || dir === "W") {
+        if (dir === "E") {
+          x1 = a.x + a.w;
+          y1 = a.cy + lane;
+          x2 = b.x - gap;
+          y2 = b.cy;
+        } else {
+          x1 = a.x;
+          y1 = a.cy + lane;
+          x2 = b.x + b.w + gap;
+          y2 = b.cy;
+        }
+        if (Math.abs(y1 - y2) < 3) return "M " + x1 + " " + y1 + " H " + x2;
+        const mx = (x1 + x2) / 2;
+        return "M " + x1 + " " + y1 + " H " + mx + " V " + y2 + " H " + x2;
+      }
+      if (dir === "S") {
+        x1 = a.cx + lane;
+        y1 = a.y + a.h;
+        x2 = b.cx;
+        y2 = b.y - gap;
+      } else {
+        x1 = a.cx + lane;
+        y1 = a.y;
+        x2 = b.cx;
+        y2 = b.y + b.h + gap;
+      }
+      if (Math.abs(x1 - x2) < 3) return "M " + x1 + " " + y1 + " V " + y2;
+      const my = (y1 + y2) / 2;
+      return "M " + x1 + " " + y1 + " V " + my + " H " + x2 + " V " + y2;
+    }
+
+    function drawLinks() {
+      const root = document.querySelector(".arch");
+      const svg = document.getElementById("links");
+      const wires = document.getElementById("wires");
+      const rect = root.getBoundingClientRect();
+      svg.setAttribute("viewBox", "0 0 " + rect.width + " " + rect.height);
+      const band = document.querySelector(".later-band").getBoundingClientRect();
+      const gutter = band.top - rect.top - 8;
+      const nodes = {};
+      document.querySelectorAll(".mod").forEach((el) => {
+        nodes[el.dataset.id] = nodeBox(el, root);
+      });
+      const staged = LINKS.map(([from, to, kind, via]) => {
+        const a = nodes[from];
+        const b = nodes[to];
+        const dx = b.cx - a.cx;
+        const dy = b.cy - a.cy;
+        const dir = via === "gutter" ? "gutter" : (Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? "E" : "W") : (dy >= 0 ? "S" : "N"));
+        return { from, to, kind, dir, a, b };
+      });
+      const counts = {};
+      staged.forEach((item) => {
+        const key = item.from + item.dir;
+        item.slot = counts[key] || 0;
+        counts[key] = item.slot + 1;
+      });
+      wires.replaceChildren();
+      staged.forEach((item) => {
+        const total = counts[item.from + item.dir];
+        const lane = (item.slot - (total - 1) / 2) * 8;
+        const d = item.dir === "gutter"
+          ? routeGutter(item.a, item.b, lane, gutter)
+          : route(item.a, item.b, lane, item.dir);
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", d);
+        path.setAttribute("class", item.kind === "later" ? "link later" : "link");
+        wires.appendChild(path);
+      });
+    }
+
+    window.addEventListener("resize", drawLinks);
+    drawLinks();
+
+    const seqToggle = document.getElementById("seqToggle");
+    const archSheet = document.getElementById("archSheet");
+    const seqSheet = document.getElementById("seqSheet");
+    const seqPrev = document.getElementById("seqPrev");
+    const seqNext = document.getElementById("seqNext");
+    const seqSteps = Array.from(seqSheet.querySelectorAll(".seq-step"));
+    const SEQ_GAP = 1600;
+    let seqIndex = -1;
+    let seqManual = false;
+    let seqTimer = null;
+
+    function stopSequence() {
+      seqManual = true;
+      if (seqTimer) {
+        clearTimeout(seqTimer);
+        seqTimer = null;
+      }
+    }
+
+    function syncSeqNav() {
+      seqPrev.disabled = seqIndex < 0;
+      seqNext.disabled = seqIndex >= seqSteps.length - 1;
+    }
+
+    function revealSeq(nextIndex) {
+      seqSteps.forEach((step, i) => step.classList.toggle("is-shown", i <= nextIndex));
+      seqIndex = nextIndex;
+      syncSeqNav();
+    }
+
+    function playSequence() {
+      if (seqManual || seqIndex >= seqSteps.length - 1) return;
+      revealSeq(seqIndex + 1);
+      seqTimer = setTimeout(playSequence, SEQ_GAP);
+    }
+
+    function startSequence() {
+      stopSequence();
+      seqManual = false;
+      seqSteps.forEach((step) => step.classList.remove("is-shown"));
+      seqIndex = -1;
+      syncSeqNav();
+      seqTimer = setTimeout(playSequence, 450);
+    }
+
+    seqPrev.addEventListener("click", (event) => {
+      event.stopPropagation();
+      stopSequence();
+      if (seqIndex >= 0) revealSeq(seqIndex - 1);
+    });
+
+    seqNext.addEventListener("click", (event) => {
+      event.stopPropagation();
+      stopSequence();
+      if (seqIndex < seqSteps.length - 1) revealSeq(seqIndex + 1);
+    });
+
+    seqToggle.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = seqToggle.getAttribute("aria-pressed") !== "true";
+      seqToggle.setAttribute("aria-pressed", open ? "true" : "false");
+      seqToggle.setAttribute("aria-label", open ? "Volver a la arquitectura" : "Ver la secuencia animada del turno");
+      archSheet.hidden = open;
+      seqSheet.classList.toggle("is-on", open);
+      if (open) startSequence();
+      else {
+        stopSequence();
+        closePopup();
+        drawLinks();
+      }
+    });
+  </script>
+</body>
+</html>
